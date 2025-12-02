@@ -1,5 +1,4 @@
-import {Layer} from "./layer";
-import {multiply, add} from "mathjs";
+import {Layer} from "./layer.js";
 import {Group} from "h5wasm";
 
 export class Input extends Layer {

@@ -1,4 +1,4 @@
-import {Layer} from "./layers/layer";
+import {Layer} from "./layers/layer.js";
 import {Dataset, Group} from "h5wasm";
 
 export class Network {
@@ -34,7 +34,7 @@ export class Network {
         })
     }
 
-    feedForward(input: number[]): number[] {
+    predict(input: number[]): number[] {
         let output: number[] = input;
         this.layers.forEach(layer => {
             output = layer.forward(output);

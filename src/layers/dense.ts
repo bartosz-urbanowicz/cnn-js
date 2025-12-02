@@ -1,4 +1,4 @@
-import {Layer} from "./layer";
+import {Layer} from "./layer.js";
 import {multiply, add} from "mathjs";
 import {sigmoid} from "../activations.ts";
 import {Dataset, Group} from "h5wasm";

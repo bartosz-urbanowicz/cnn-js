@@ -1,6 +1,6 @@
-import {Network} from "./network";
-import {Dense} from "./layers/dense";
-import {Input} from "./layers/input";
+import {Network} from "./network.js";
+import {Dense} from "./layers/dense.js";
+import {Input} from "./layers/input.js";
 
 async function main() {
     const network = new Network([
@@ -16,7 +16,7 @@ async function main() {
 
     await network.importKerasWeights("/home/bartek/Desktop/magisterka/dl/project/cnn-ts/model.weights.h5")
 
-    const result = network.feedForward([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0])
+    const result = network.predict([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0])
 
     console.log(result)
 
