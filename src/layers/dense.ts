@@ -1,22 +1,25 @@
 import {Layer} from "./layer.js";
 import {multiply, add} from "mathjs";
-import {sigmoid} from "../activations.ts";
+import {sigmoid} from "../activation-functions.js";
 import {Dataset, Group} from "h5wasm";
+import {map} from "mathjs";
+import {LayerGradient} from '../types/LayerGradient.ts';
 
 export class Dense extends Layer {
-    protected weights:number[][] = [];
-    protected biases: number[] = [];
-    shape: number = 0;
-    private activation: (z: number[]) => number[]
+    public weights:number[][] = [];
+    public biases: number[] = [];
+    private activationFunction: (x: number) => number
+    private activationFunctionName: string
     private initializer: string = "";
 
-    constructor(shape: number, activation: string) {
+    public constructor(shape: number, activation: string) {
         super();
 
-        this.shape = shape;
+        this.outputShape = shape;
 
         if (activation === "sigmoid") {
-            this.activation = sigmoid;
+            this.activationFunction = sigmoid;
+            this.activationFunctionName = "sigmoid";
             this.initializer = "xavier"
         } else {
             throw new Error("Provide correct activation function!")
@@ -24,18 +27,20 @@ export class Dense extends Layer {
 
     }
 
-    importKerasWeights(data: Group, previousShape: number): void {
+    public importKerasWeights(data: Group, previousShape: number): void {
         const weightDataset: Dataset = data.get("vars/0") as Dataset
         const weights: number[] = Array.from(weightDataset.value as Int32Array)
         const biases: Dataset = data.get("vars/1") as Dataset
 
+        this.inputShape = previousShape;
+
         const newWeights: number[][] = []
 
         // TODO refactor transposition here
-        for (let i = 0; i < this.shape; i++) {
+        for (let i = 0; i < this.outputShape; i++) {
             newWeights.push([])
             for (let j = 0; j < previousShape; j++) {
-                newWeights[i].push(weights[(j * this.shape) + i]);
+                newWeights[i].push(weights[(j * this.outputShape) + i]);
             }
         }
 
@@ -43,21 +48,116 @@ export class Dense extends Layer {
         this.biases = Array.from(biases.value as Int32Array)
     }
 
-    initialize(previousShape: number): void{
+    public initialize(previousShape: number): void{
+
+        this.inputShape = previousShape
 
         if (this.initializer === "xavier") {
-            const x = Math.sqrt(6 / (previousShape + this.shape))
+            const x = Math.sqrt(6 / (previousShape + this.outputShape))
 
             this.weights = Array.from(
-                { length: this.shape },
+                { length: this.outputShape },
                 () => Array.from({ length: previousShape }, () => Math.random() * (2 * x) - x)
             );
 
-            this.biases = Array.from({ length: this.shape }, () => 0)
+            this.biases = Array.from({ length: this.outputShape }, () => 0)
         }
     }
 
-    forward(input: number[]): number[] {
-        return this.activation!(add(multiply(this.weights, input), this.biases));
+    public forward(input: number[]): number[] {
+        // return this.activationFunction(add(multiply(this.weights, input), this.biases));
+        const activations = map(
+          add(multiply(this.weights, input), this.biases),
+          (x) => this.activationFunction(x));
+
+        // stored for backprop
+        this.lastPreActivations = add(multiply(this.weights, input), this.biases);
+        this.lastActivations = activations;
+
+        return activations;
     }
+
+    public activationFunctionDerivative(x: number): number {
+      if (this.activationFunctionName === "sigmoid") {
+        const result = this.activationFunction(x)
+        return result * (1 - result)
+      }
+      return 0
+    }
+
+    public outputLayerWeightsGradient(losses: number[]): number[][] {
+      const gradient: number[][] = []
+      const deltas = []
+      for (let j = 0; j < this.outputShape; j++) {
+        gradient.push([])
+        const delta = (-losses[j]) * this.activationFunctionDerivative(this.lastPreActivations[j])
+        deltas.push(delta)
+        for (let i = 0; i < this.inputShape; i++) {
+          const changeToWeight = delta * this.previousLayer!.lastActivations[i]
+          gradient[j].push(changeToWeight)
+        }
+      }
+
+      this.deltas = deltas;
+      return gradient
+    }
+
+    public outputLayerBiasesGradient(losses: number[]): number[] {
+      const gradient: number[] = []
+      for (let j = 0; j < this.outputShape; j++) {
+        const changeToBias = (-losses[j]) * this.activationFunctionDerivative(this.lastPreActivations[j])
+        gradient.push(changeToBias)
+      }
+
+      return gradient
+    }
+
+  public hiddenLayerWeightsGradient(): number[][] {
+    const gradient: number[][] = []
+    const deltas = []
+    for (let j = 0; j < this.outputShape; j++) {
+      gradient.push([])
+      let sum = 0
+      for (let k = 0; k < this.nextLayer!.weights.length; k++) {
+        sum += this.nextLayer!.weights[k][j] * this.nextLayer!.deltas[k]
+      }
+      const delta = sum * this.activationFunctionDerivative(this.lastPreActivations[j])
+      deltas.push(delta)
+      for (let i = 0; i < this.inputShape; i++) {
+        const changeToWeight = delta * this.previousLayer!.lastActivations[i]
+        gradient[j].push(changeToWeight)
+      }
+    }
+
+    this.deltas = deltas;
+    return gradient
+  }
+
+  public hiddenLayerBiasesGradient(): number[] {
+    const gradient: number[] = []
+    for (let j = 0; j < this.outputShape; j++) {
+      let sum = 0;
+      for (let k = 0; k < this.nextLayer!.weights.length; k++) {
+        sum += this.nextLayer!.weights[k][j] * this.nextLayer!.deltas[k]
+      }
+      const changeToBias = sum * this.activationFunctionDerivative(this.lastPreActivations[j])
+      gradient.push(changeToBias)
+    }
+
+    return gradient
+  }
+
+  public applyGradient(weightsGradient: number[][], biasesGradient: number[], learningRate: number): void {
+    for (let j = 0; j < this.outputShape; j++) {
+      for (let i = 0; i < this.inputShape; i++) {
+        this.weights[j][i] = this.weights[j][i] + (weightsGradient[j][i] * learningRate)
+      }
+    }
+
+    for (let i = 0; i < this.biases.length; i++) {
+      this.biases[i] = this.biases[i] + (biasesGradient[i] * learningRate)
+    }
+  }
+
+
 }

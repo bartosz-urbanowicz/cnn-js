@@ -2,24 +2,29 @@ import {Layer} from "./layer.js";
 import {Group} from "h5wasm";
 
 export class Input extends Layer {
+    public activationFunctionDerivative(x: number): number {
+        throw new Error("Method not implemented.");
+    }
 
-    shape: number;
+    public shape: number;
 
-    constructor(inputShape: number) {
+    public constructor(inputShape: number) {
         super();
 
         this.shape = inputShape;
     }
 
-    initialize() {
-
+    public initialize():void {
+      throw new Error("Method not implemented.");
     }
 
-    importKerasWeights(data: Group, previousShape: number) {
-
+    public importKerasWeights(data: Group, previousShape: number): void {
+      throw new Error("Method not implemented.");
     }
 
-    forward(input: number[]): number[] {
+    public forward(input: number[]): number[] {
+        this.lastPreActivations = input;
+        this.lastActivations = input;
         return input;
     }
 }
