@@ -1,29 +1,37 @@
 import {Network} from "./network.js";
 import {Dense} from "./layers/dense.js";
 import {Input} from "./layers/input.js";
+import mnist from "mnist";
+import {number} from 'mathjs';
 
 async function main(): Promise<void> {
-    const network = new Network([
-        new Input(4),
-        new Dense(4, "sigmoid"),
-        new Dense(2, "sigmoid"),
-        new Dense(2, "sigmoid")
+    const model = new Network([
+        new Input(784),
+        new Dense(784, "sigmoid"),
+        new Dense(64, "sigmoid"),
+        new Dense(10, "sigmoid")
     ])
 
+    const set = mnist.set(4000, 1000);
 
-    // network.initialize()
+    const trainingSet = set.training;
+    const testSet = set.test;
 
-    await network.importKerasWeights("/home/bartek/Desktop/magisterka/dl/project/cnn-ts/model.weights.h5", 4)
+    const inputsTrain: number[][] = trainingSet.map((item: {input: number[], output: number[]}) => item.input);
+    const outputsTrain: number[][] = trainingSet.map((item: {input: number[], output: number[]}) => item.output);
 
-    // const result = network.predict([0.1, 0.2, 0.3, 0.4])
-    // const gradient = network.gradient([0.1, 0.2, 0.3, 0.4], [0, 1])
+    model.initialize()
 
-    // console.log(result);
-    // console.log(gradient[0]);
-
-    network.sgd([{ data: [0.1, 0.2, 0.3, 0.4], target: [0, 1]}], 1, 0.001)
-
-    network.printWeights()
+    model.fit(
+        inputsTrain,
+        outputsTrain,
+        {
+          batchSize: 32,
+          learningRate: 0.001,
+          epochs: 10,
+          validationSplit: 0.8
+        }
+      )
 
 }
 

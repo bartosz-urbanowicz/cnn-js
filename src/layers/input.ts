@@ -6,16 +6,15 @@ export class Input extends Layer {
         throw new Error("Method not implemented.");
     }
 
-    public shape: number;
-
     public constructor(inputShape: number) {
         super();
 
-        this.shape = inputShape;
+        this.inputShape = inputShape;
     }
 
-    public initialize():void {
-      throw new Error("Method not implemented.");
+    public initialize(previousShape: number):void {
+      this.inputShape = previousShape;
+      this.outputShape = previousShape;
     }
 
     public importKerasWeights(data: Group, previousShape: number): void {

@@ -2,7 +2,7 @@ import {Group} from "h5wasm";
 import {LayerGradient} from '../types/LayerGradient.ts';
 
 export abstract class Layer {
-    protected inputShape: number = 0;
+    public inputShape: number = 0;
     public outputShape: number = 0;
     protected previousLayer: null | Layer = null;
     protected nextLayer: null | Layer = null;
