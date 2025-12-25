@@ -1,17 +1,20 @@
 import {Layer} from "./layers/layer.js";
 import {Dense} from "./layers/dense.js"
 import {Group} from "h5wasm";
-import {LayerGradient} from './types/LayerGradient.ts';
+import {LayerTensor} from './types/LayerTensor.ts';
 import {Sample} from './types/Sample.ts';
 import {NetworkParams} from './types/NetworkParams.ts';
 import {accuracy} from './layers/metrics.ts';
+import {Optimizer} from './optimizers/optimizer.ts';
 
 export class Network {
-    private layers: Layer[]
+    public layers: Layer[]
     private trainableLayers: Dense[]
+    private optimizer: Optimizer;
 
     public constructor(
-        layers: Layer[]
+        layers: Layer[],
+        optimizer: Optimizer
     ) {
         this.layers = layers
         this.trainableLayers = layers.slice(1, layers.length) as Dense[]
@@ -23,7 +26,11 @@ export class Network {
             layer.setNextLayer(layers[index + 1])
           }
           previousLayer = layer;
+
+          layer.optimizer = optimizer;
         })
+
+        this.optimizer = optimizer;
     }
 
     public async importKerasWeights(file: string, inputShape: number): Promise<void> {
@@ -58,44 +65,69 @@ export class Network {
         return output
     }
 
-    public gradient(batch: Sample[]): LayerGradient[] {
+    public gradient(batch: Sample[]): LayerTensor[] {
+      const gradientSum: LayerTensor[] = this.trainableLayers.map(layer => ({
+        weights: Array.from({ length: layer.outputShape },
+          () => Array(layer.inputShape).fill(0)),
+        biases: Array(layer.outputShape).fill(0)
+      }))
 
-      const summedLosses: number[] = batch.reduce((acc: number[], curr_sample: Sample): number[] => {
-        const prediction: number[] = this.predict(curr_sample.data)
-        prediction.forEach((pred, idx) => {
-          acc[idx] = (acc[idx] || 0) + (pred - curr_sample.target[idx])
+      for (const sample of batch) {
+        const prediction: number[] = this.predict(sample.data)
+        const losses = prediction.map((pred, idx) => {
+          return pred - sample.target[idx]
         })
-        return acc;
-      }, [])
 
-      const avgLosses = summedLosses.map(x => x / batch.length)
+        const outputLayerGradients: LayerTensor = {
+          weights: this.trainableLayers[this.trainableLayers.length - 1].outputLayerWeightsGradient(losses),
+          biases: this.trainableLayers[this.trainableLayers.length - 1].outputLayerBiasesGradient(losses)
+        }
 
-      const outputLayerGradients: LayerGradient = {
-        weights: this.trainableLayers[this.trainableLayers.length - 1].outputLayerWeightsGradient(avgLosses),
-        biases: this.trainableLayers[this.trainableLayers.length - 1].outputLayerBiasesGradient(avgLosses)
+        const hiddenLayersGradients: LayerTensor[] = []
+
+        this.trainableLayers.slice(0, -1).reverse().forEach((layer) => {
+          hiddenLayersGradients.push({
+            weights: layer.hiddenLayerWeightsGradient(),
+            biases: layer.hiddenLayerBiasesGradient()
+          })
+        })
+
+        const singleGradient: LayerTensor[] = [
+          ...hiddenLayersGradients.reverse(),
+          outputLayerGradients
+        ]
+
+        singleGradient.forEach((layer: LayerTensor, idx: number) => {
+          for (let j = 0; j < layer.weights.length; j++) {
+            for (let i = 0; i < layer.weights[j].length; i++) {
+              gradientSum[idx].weights[j][i] += layer.weights[j][i]
+            }
+            gradientSum[idx].biases[j] += layer.biases[j]
+          }
+        })
       }
 
-      const hiddenLayersGradients: LayerGradient[] = []
-
-      this.trainableLayers.slice(0, -1).reverse().forEach((layer) => {
-        hiddenLayersGradients.push({
-          weights: layer.hiddenLayerWeightsGradient(),
-          biases: layer.hiddenLayerBiasesGradient()
-        })
+      // avg
+      gradientSum.forEach(layer => {
+        for (let j = 0; j < layer.weights.length; j++) {
+          for (let i = 0; i < layer.weights[j].length; i++) {
+            layer.weights[j][i] /= batch.length
+          }
+          layer.biases[j] /= batch.length
+        }
       })
 
-      return [
-        ...hiddenLayersGradients.reverse(),
-        outputLayerGradients
-      ]
+      return gradientSum;
+
     }
 
-    public applyGradient(gradient: LayerGradient[], learningRate: number): void {
+    public applyGradient(gradient: LayerTensor[]): void {
+      // only for adam
+      // this.trainableLayers[0].optimizer.state.timestep! += 1;
       this.trainableLayers.forEach((layer, i) => {
         const weightsGradient = gradient[i].weights
         const biasesGradient = gradient[i].biases
-        // console.log(`layer ${i}`)
-        layer.applyGradient(weightsGradient, biasesGradient, learningRate)
+        layer.optimizer.applyGradient(layer, weightsGradient, biasesGradient, i)
       })
     }
 
@@ -111,10 +143,11 @@ export class Network {
     }
 
     public sgd(
+      network: Network,
       trainingData: Sample[],
       validationData: Sample[],
       batchSize: number,
-      learningRate: number): void {
+    ): void {
 
       // fisher yates shuffle
       const shuffled = trainingData.slice();
@@ -131,15 +164,17 @@ export class Network {
         const start = i * batchSize;
         const end = Math.min(start + batchSize, shuffled.length);
         const batch = shuffled.slice(start, end);
-        const gradient: LayerGradient[] = this.gradient(batch);
-        this.applyGradient(gradient, learningRate);
+        const gradient: LayerTensor[] = network.gradient(batch);
+        network.applyGradient(gradient);
       }
 
-      const acc: number = accuracy(this, validationData)
+      const acc: number = accuracy(network, validationData)
       console.log(`val_accuracy: ${acc}`)
     }
 
     public fit(inputs: number[][], outputs: number[][], params: NetworkParams): void{
+      this.optimizer.initializeStates(this);
+
       const data: Sample[] = inputs.map((input, index) => ({
         data: input,
         target: outputs[index]
@@ -156,8 +191,8 @@ export class Network {
       const validationData = data.slice(splitIndex);
 
       for (let i = 0; i < params.epochs; i++) {
-        console.log(`Epoch ${i}/${params.epochs}`)
-        this.sgd(trainingData, validationData, params.batchSize, params.learningRate)
+        console.log(`Epoch ${i + 1}/${params.epochs}`)
+        this.sgd(this, trainingData, validationData, params.batchSize)
       }
     }
 }

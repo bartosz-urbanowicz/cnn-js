@@ -3,8 +3,10 @@ import {multiply, add} from "mathjs";
 import {sigmoid} from "../activation-functions.js";
 import {Dataset, Group} from "h5wasm";
 import {map} from "mathjs";
+import {LayerSgdMomentumState} from '../types/LayerSgdMomentumState.ts';
 
 export class Dense extends Layer {
+    //TODO refactor to use layer tensor
     public weights:number[][] = [];
     public biases: number[] = [];
     private activationFunction: (x: number) => number
@@ -143,25 +145,4 @@ export class Dense extends Layer {
 
     return gradient
   }
-
-  public applyGradient(weightsGradient: number[][], biasesGradient: number[], learningRate: number): void {
-    let count = 0;
-    for (const row of weightsGradient) {
-      for (const val of row) {
-        if (val === 0) count++;
-      }
-    }
-    // console.log(count)
-    for (let j = 0; j < this.outputShape; j++) {
-      for (let i = 0; i < this.inputShape; i++) {
-        this.weights[j][i] -= (weightsGradient[j][i] * learningRate)
-      }
-    }
-
-    for (let i = 0; i < this.biases.length; i++) {
-      this.biases[i] -= (biasesGradient[i] * learningRate)
-    }
-  }
-
-
 }
