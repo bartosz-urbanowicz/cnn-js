@@ -2,9 +2,6 @@ import {Layer} from "./layer.js";
 import {Group} from "h5wasm";
 
 export class Input extends Layer {
-    public activationFunctionDerivative(x: number): number {
-        throw new Error("Method not implemented.");
-    }
 
     public constructor(inputShape: number) {
         super();

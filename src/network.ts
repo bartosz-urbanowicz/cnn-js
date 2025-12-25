@@ -4,12 +4,13 @@ import {Group} from "h5wasm";
 import {LayerTensor} from './types/LayerTensor.ts';
 import {Sample} from './types/Sample.ts';
 import {NetworkParams} from './types/NetworkParams.ts';
-import {accuracy} from './layers/metrics.ts';
+import {accuracy} from './metrics.ts';
 import {Optimizer} from './optimizers/optimizer.ts';
+import {TrainableLayer} from './layers/trainable-layer.ts';
 
 export class Network {
     public layers: Layer[]
-    private trainableLayers: Dense[]
+    private trainableLayers: TrainableLayer[]
     private optimizer: Optimizer;
 
     public constructor(
@@ -17,7 +18,11 @@ export class Network {
         optimizer: Optimizer
     ) {
         this.layers = layers
-        this.trainableLayers = layers.slice(1, layers.length) as Dense[]
+        this.trainableLayers = layers.slice(1, layers.length) as TrainableLayer[]
+
+        this.trainableLayers.forEach((layer: TrainableLayer) => {
+          layer.optimizer = optimizer;
+        })
 
         let previousLayer: Layer | null = null
         this.layers.forEach((layer, index) => {
@@ -26,8 +31,6 @@ export class Network {
             layer.setNextLayer(layers[index + 1])
           }
           previousLayer = layer;
-
-          layer.optimizer = optimizer;
         })
 
         this.optimizer = optimizer;
@@ -127,7 +130,7 @@ export class Network {
       this.trainableLayers.forEach((layer, i) => {
         const weightsGradient = gradient[i].weights
         const biasesGradient = gradient[i].biases
-        layer.optimizer.applyGradient(layer, weightsGradient, biasesGradient, i)
+        layer.optimizer!.applyGradient(layer, weightsGradient, biasesGradient, i)
       })
     }
 

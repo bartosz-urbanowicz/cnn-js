@@ -1,31 +1,14 @@
-import {Layer} from "./layer.js";
 import {multiply, add} from "mathjs";
 import {sigmoid} from "../activation-functions.js";
 import {Dataset, Group} from "h5wasm";
 import {map} from "mathjs";
-import {LayerSgdMomentumState} from '../types/LayerSgdMomentumState.ts';
+import {TrainableLayer} from './trainable-layer.ts';
 
-export class Dense extends Layer {
-    //TODO refactor to use layer tensor
-    public weights:number[][] = [];
-    public biases: number[] = [];
-    private activationFunction: (x: number) => number
-    private activationFunctionName: string
-    private initializer: string = "";
-
+export class Dense extends TrainableLayer {
     public constructor(shape: number, activation: string) {
-        super();
+        super(activation);
 
         this.outputShape = shape;
-
-        if (activation === "sigmoid") {
-            this.activationFunction = sigmoid;
-            this.activationFunctionName = "sigmoid";
-            this.initializer = "xavier"
-        } else {
-            throw new Error("Provide correct activation function!")
-        }
-
     }
 
     public importKerasWeights(data: Group, previousShape: number): void {
@@ -121,7 +104,6 @@ export class Dense extends Layer {
       }
       const delta = sum * this.activationFunctionDerivative(j)
       deltas.push(delta)
-      // console.log(this.previousLayer!.lastActivations)
       for (let i = 0; i < this.inputShape; i++) {
         const changeToWeight = delta * this.previousLayer!.lastActivations[i]
         gradient[j].push(changeToWeight)

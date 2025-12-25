@@ -1,0 +1,3 @@
+- [ ] refactor layers, add non trainable and trainable subclasses
+- [ ] add categorical crossentropy loss function
+- [ ] add relu, softmax activation functions

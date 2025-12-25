@@ -15,9 +15,10 @@ async function main(): Promise<void> {
         new Dense(64, "sigmoid"),
         new Dense(10, "sigmoid")
       ],
-      new Sgd(0.001)
+      // new Sgd(0.001)
       // new SgdMomentum(0.1)
-      // new RmsProp(0.001)
+      // best for mnist
+      new RmsProp(0.001)
       // new Adam(0.001)
     )
 

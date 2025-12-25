@@ -1,5 +1,5 @@
-import {Network} from '../network.ts';
-import {Sample} from '../types/Sample.ts';
+import {Network} from './network.ts';
+import {Sample} from './types/Sample.ts';
 
 function arraysEqual(a: number[], b: number[]): boolean {
   return a.length === b.length && a.every((v, i) => v === b[i]);
