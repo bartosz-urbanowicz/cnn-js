@@ -1,13 +1,13 @@
 import {Group} from "h5wasm";
 import {Optimizer} from '../optimizers/optimizer.ts';
 import {Layer} from './layer.ts';
-import {sigmoid} from '../activation-functions.ts';
+import {relu, sigmoid, softmax} from '../activation-functions.ts';
 
 export abstract class TrainableLayer extends Layer{
   //TODO refactor to use layer tensor
   public weights:number[][] = [];
   public biases: number[] = [];
-  protected activationFunction: (x: number) => number;
+  protected activationFunction: (x: number[]) => number[];
   protected activationFunctionName: string;
   protected initializer: string = "";
   // can be undefined because added in network constructor for every layer
@@ -20,7 +20,16 @@ export abstract class TrainableLayer extends Layer{
       this.activationFunction = sigmoid;
       this.activationFunctionName = "sigmoid";
       this.initializer = "xavier"
-    } else {
+    } else if (activation === "softmax") {
+      this.activationFunction = softmax;
+      this.activationFunctionName = "softmax";
+      this.initializer = "xavier"
+    } else if (activation === "relu") {
+      this.activationFunction = relu;
+      this.activationFunctionName = "relu";
+      this.initializer = "he"
+    }
+    else {
       throw new Error("Provide correct activation function!")
     }
 

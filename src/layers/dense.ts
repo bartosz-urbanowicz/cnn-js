@@ -32,24 +32,28 @@ export class Dense extends TrainableLayer {
     }
 
     public initialize(previousShape: number): void{
+      this.inputShape = previousShape
+      let limit = null;
 
-        this.inputShape = previousShape
+      if (this.initializer === "xavier") {
+        limit = Math.sqrt(6 / (previousShape + this.outputShape));
+      } else if (this.initializer === "he") {
+        limit = Math.sqrt(6 / previousShape);
+      } else {
+        throw new Error("select valid initializer");
+      }
 
-        if (this.initializer === "xavier") {
-            const x = Math.sqrt(6 / (previousShape + this.outputShape))
+      this.weights = Array.from(
+        { length: this.outputShape },
+        () => Array.from({ length: previousShape }, () => Math.random() * (2 * limit) - limit)
+      );
 
-            this.weights = Array.from(
-                { length: this.outputShape },
-                () => Array.from({ length: previousShape }, () => Math.random() * (2 * x) - x)
-            );
-
-            this.biases = Array.from({ length: this.outputShape }, () => 0)
-        }
+      this.biases = Array.from({ length: this.outputShape }, () => 0)
     }
 
     public forward(input: number[]): number[] {
         const preActivations: number[] = add(multiply(this.weights, input), this.biases);
-        const activations = map(preActivations, (x) => this.activationFunction(x));
+        const activations = this.activationFunction(preActivations);
 
         // stored for backprop
         this.lastPreActivations = preActivations;
@@ -59,9 +63,13 @@ export class Dense extends TrainableLayer {
     }
 
     public activationFunctionDerivative(idx: number): number {
-      const activation = this.lastActivations[idx]
       if (this.activationFunctionName === "sigmoid") {
+        const activation = this.lastActivations[idx]
         return activation * (1 - activation)
+      }
+      if (this.activationFunctionName === "relu") {
+        const preActivation = this.lastPreActivations[idx]
+        return preActivation > 0 ? 1 : 0;
       }
       return 0
     }
@@ -71,7 +79,12 @@ export class Dense extends TrainableLayer {
       const deltas = []
       for (let j = 0; j < this.outputShape; j++) {
         gradient.push([])
-        const delta = losses[j] * this.activationFunctionDerivative(j)
+        let delta = null;
+        if (this.activationFunctionName === "sigmoid") {
+          delta = losses[j] * this.activationFunctionDerivative(j);
+        } else {
+          delta = losses[j];
+        }
         deltas.push(delta)
         for (let i = 0; i < this.inputShape; i++) {
           const changeToWeight = delta * this.previousLayer!.lastActivations[i]
@@ -86,7 +99,13 @@ export class Dense extends TrainableLayer {
     public outputLayerBiasesGradient(losses: number[]): number[] {
       const gradient: number[] = []
       for (let j = 0; j < this.outputShape; j++) {
-        const changeToBias = losses[j] * this.activationFunctionDerivative(j)
+        let changeToBias = null;
+        if (this.activationFunctionName === "sigmoid") {
+          changeToBias = losses[j] * this.activationFunctionDerivative(j)
+        } else {
+          changeToBias = losses[j];
+        }
+
         gradient.push(changeToBias)
       }
 

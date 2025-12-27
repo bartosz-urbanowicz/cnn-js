@@ -44,7 +44,11 @@ export class Network {
 
         const layers: Group = f.get("layers")! as Group
 
+
         let previousShape = inputShape
+        // input layers weights are not imported, but it has to be initialized
+        this.layers[0].initialize(previousShape)
+
         layers.keys().forEach((layer: string, i: number) => {
             const currentLayer: Layer = this.layers[i + 1]
             currentLayer.importKerasWeights(layers.get(layer)! as Group, previousShape)

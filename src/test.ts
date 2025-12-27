@@ -7,18 +7,16 @@ import {Sgd} from './optimizers/sgd.ts';
 async function main(): Promise<void> {
   const model = new Network([
     new Input(4),
-    new Dense(4, "sigmoid"),
-    new Dense(2, "sigmoid"),
-    new Dense(2, "sigmoid"),
+    new Dense(4, "relu"),
+    new Dense(2, "relu"),
+    new Dense(2, "softmax"),
   ],
-    // new RmsProp(0.001, 0.9)
-    new RmsProp(0.001, 0.9)
+    new RmsProp(1)
+    // new Sgd(0.1)
   )
 
   await model.importKerasWeights("/home/bartek/Desktop/magisterka/dl/project/cnn-ts/model.weights.h5", 4)
   // model.initialize()
-
-  // model.sgd([{data: [0.1, 0.2, 0.3, 0.4], target: [0, 1]}], [{data: [0.1, 0.2, 0.3, 0.4], target: [0, 1]}],1, 0.001)
 
   model.fit(
     [[0.1, 0.2, 0.3, 0.4]],
@@ -31,6 +29,9 @@ async function main(): Promise<void> {
   )
 
   model.printWeights()
+
+  const prediction = model.predict([0.1, 0.2, 0.3, 0.4])
+  console.log(prediction)
 }
 
 main();

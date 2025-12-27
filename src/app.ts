@@ -11,9 +11,9 @@ import {Adam} from './optimizers/adam.ts';
 async function main(): Promise<void> {
     const model = new Network([
         new Input(784),
-        new Dense(784, "sigmoid"),
-        new Dense(64, "sigmoid"),
-        new Dense(10, "sigmoid")
+        new Dense(784, "relu"),
+        new Dense(64, "relu"),
+        new Dense(10, "softmax")
       ],
       // new Sgd(0.001)
       // new SgdMomentum(0.1)
