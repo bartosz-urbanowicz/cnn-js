@@ -1,4 +1,4 @@
-export interface LayerTensor {
+export interface DenseLayerParameters {
   weights: number[][],
   biases: number[]
 }

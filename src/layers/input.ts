@@ -1,21 +1,22 @@
 import {Layer} from "./layer.js";
 import {Group} from "h5wasm";
+import {TTensorShape} from '../types/TensorShape.ts';
 
 export class Input extends Layer {
 
-    public constructor(inputShape: number) {
+	public inputShape: TTensorShape;
+	public outputShape: TTensorShape;
+
+    public constructor(inputShape: TTensorShape) {
         super();
 
         this.inputShape = inputShape;
+        this.outputShape = inputShape;
     }
 
     public initialize(previousShape: number):void {
       this.inputShape = previousShape;
       this.outputShape = previousShape;
-    }
-
-    public importKerasWeights(data: Group, previousShape: number): void {
-      throw new Error("Method not implemented.");
     }
 
     public forward(input: number[]): number[] {

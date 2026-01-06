@@ -1,12 +1,12 @@
-import {Network} from "./network.ts";
-import {Dense} from "./layers/dense.ts";
-import {Input} from "./layers/input.ts";
+import {Network} from "../network.ts";
+import {Dense} from "../layers/dense.ts";
+import {Input} from "../layers/input.ts";
 // @ts-ignore
 import mnist from "mnist";
-import {SgdMomentum} from './optimizers/sgd-momentum.ts';
-import {Sgd} from './optimizers/sgd.ts';
-import {RmsProp} from './optimizers/rmsprop.ts';
-import {Adam} from './optimizers/adam.ts';
+import {SgdMomentum} from '../optimizers/sgd-momentum.ts';
+import {Sgd} from '../optimizers/sgd.ts';
+import {RmsProp} from '../optimizers/rmsprop.ts';
+import {Adam} from '../optimizers/adam.ts';
 
 async function main(): Promise<void> {
 	const model = new Network([

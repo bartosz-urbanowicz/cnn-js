@@ -1,8 +1,8 @@
-import {Network} from "./network.js";
-import {Dense} from "./layers/dense.js";
-import {Input} from "./layers/input.js";
-import {RmsProp} from './optimizers/rmsprop.ts';
-import {Sgd} from './optimizers/sgd.ts';
+import {Network} from "../network.ts";
+import {Dense} from "../layers/dense.ts";
+import {Input} from "../layers/input.ts";
+import {RmsProp} from '../optimizers/rmsprop.ts';
+import {Sgd} from '../optimizers/sgd.ts';
 
 async function main(): Promise<void> {
   const model = new Network([

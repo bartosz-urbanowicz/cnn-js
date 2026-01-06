@@ -1,6 +1,6 @@
-import {LayerTensor} from './LayerTensor.ts';
+import {DenseLayerParameters} from './DenseLayerParameters.ts';
 
 export interface LayerAdamState {
-  firstMoment: LayerTensor;
-  secondMoment: LayerTensor;
+  firstMoment: DenseLayerParameters;
+  secondMoment: DenseLayerParameters;
 }

@@ -43,18 +43,18 @@ export class RmsProp extends Optimizer {
           this.decayRate * previousAvgSquareGradient + ((1 - this.decayRate) * Math.pow(weightsGradient[j][i], 2))
         const changeToWeight =
           (this.learningRate * weightsGradient[j][i]) / (Math.sqrt(newAvgSquareGradient) + this.stabilizer)
-        layer.weights[j][i] -= changeToWeight;
+        layer.parameters.weights[j][i] -= changeToWeight;
         this.state.layers[layerIndex].avgSquareGradient.weights[j][i] = newAvgSquareGradient;
       }
     }
 
-    for (let i = 0; i < layer.biases.length; i++) {
+    for (let i = 0; i < layer.parameters.biases.length; i++) {
       const previousAvgSquareGradient = this.state.layers[layerIndex].avgSquareGradient.biases[i]
       const newAvgSquareGradient =
         this.decayRate * previousAvgSquareGradient + ((1 - this.decayRate) * Math.pow(biasesGradient[i], 2))
       const changeToBias =
         (this.learningRate * biasesGradient[i]) / (Math.sqrt(newAvgSquareGradient) + this.stabilizer)
-      layer.biases[i] -= changeToBias;
+      layer.parameters.biases[i] -= changeToBias;
       this.state.layers[layerIndex].avgSquareGradient.biases[i] = newAvgSquareGradient;
     }
   }

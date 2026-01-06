@@ -1,5 +1,5 @@
-import {LayerTensor} from './LayerTensor.ts';
+import {DenseLayerParameters} from './DenseLayerParameters.ts';
 
 export interface LayerRmsPropState {
-  avgSquareGradient: LayerTensor;
+  avgSquareGradient: DenseLayerParameters;
 }

@@ -1,5 +1,5 @@
-import {LayerTensor} from './LayerTensor.ts';
+import {DenseLayerParameters} from './DenseLayerParameters.ts';
 
 export interface LayerSgdMomentumState {
-  velocity: LayerTensor;
+  velocity: DenseLayerParameters;
 }
