@@ -9,3 +9,8 @@
   - [ ] activations in conv layer other than relu
   - [x] average pooling
   - [ ] better testing
+
+
+- [ ] refactor
+  - [ ] change optimizer to recursive layer agnostic
+  - 
